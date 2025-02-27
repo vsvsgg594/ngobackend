@@ -1,10 +1,10 @@
-import express from 'express';
-import {initiatePayment,verifyPayment} from '../controller/paymentController.js'
+// import express from 'express';
+// import {initiatePayment,verifyPayment} from '../controller/paymentController.js'
 
-const router=express();
+// const router=express();
 
-router.post('/initiate',initiatePayment);
+// router.post('/initiate',initiatePayment);
 
-router.post('/verify',verifyPayment);
+// router.post('/verify',verifyPayment);
 
-export default router;
+// export default router;

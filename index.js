@@ -3,7 +3,7 @@ import express from 'express';
 import cors from  'cors';
 import ConnectDB from './Databse/ConnectDB.js';
 import userRoutes from './router/userRoutes.js';
-import paymentRoute from './router/paymentRoute.js';
+// import paymentRoute from './router/paymentRoute.js';
 import path from 'path';
 import { fileURLToPath } from "url";
 
@@ -18,16 +18,19 @@ const app=express();
 
 app.use(express.json());
 app.use(cors({
-    origin: "https://accpcops.org.in/", 
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"]
-  }));
-
+  origin: ["https://accpcops.org.in", "http://localhost:3000"], 
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept"]
+}));
+// app.use(cors({
+//   origin:"*"
+// }));
 app.use('/uploads', express.static('uploads'));
 app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
-app.use("/api/user",userRoutes);
-app.use('/api/user',paymentRoute);
+app.use("/api/user", userRoutes);
+// app.use("/api/payment", paymentRoute);
+
 const PORT=8000;
 
 app.listen(PORT,()=>{
