@@ -53,3 +53,34 @@ export const loginUser=async(req,res)=>{
 
     }
 }
+
+export const getAllUser=async(req,res)=>{
+    try{
+        const user=await User.find();
+        return res.status(200).json({message:"Register User",user});
+    }catch(err){
+        console.log("failed to fetch User",err);
+        return res.status(401).json({message:"Failed to Fetch User"})
+
+    }
+}
+
+export const deleteByIdUser = async (req, res) => {
+    try {
+      const { userId } = req.params;
+  
+      // Find and delete the user by ID
+      const user = await User.findByIdAndDelete(userId);
+  
+      // If user is not found, return 404
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      // Return success response
+      return res.status(200).json({ message: "User deleted successfully", user });
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      return res.status(500).json({ message: "Failed to delete user", error: err.message });
+    }
+  };
