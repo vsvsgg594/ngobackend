@@ -3,10 +3,11 @@ import express from 'express';
 import cors from  'cors';
 import ConnectDB from './Databse/ConnectDB.js';
 import userRoutes from './router/userRoutes.js';
-// import paymentRoute from './router/paymentRoute.js';
+import paymentRoute from './router/paymentRoute.js';
+import cardRoutes from './router/cardRoutes.js';
 import path from 'path';
 import { fileURLToPath } from "url";
-// import paymentRoute from './router/paymentRoute.js';
+import bodyParser from 'body-parser';
 
 
 dotenv.config();
@@ -24,13 +25,17 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept"]
 }));
+// Increase the limit for JSON and URL-encoded data
+app.use(bodyParser.json({ limit: '10mb' })); // Adjust the limit as needed
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 // app.use(cors({
 //   origin:"*"
 // }));
 app.use('/uploads', express.static('uploads'));
 app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 app.use("/api/user", userRoutes);
-// app.use("/api/payment",paymentRoute);
+app.use("/api/payment",paymentRoute);
+app.use('/api/card',cardRoutes);
 // app.use("/api/payment", paymentRoute);
 
 const PORT=8000;

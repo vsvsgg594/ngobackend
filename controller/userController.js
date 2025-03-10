@@ -40,10 +40,13 @@ export const loginUser=async(req,res)=>{
             return res.status(402).json({message:"Email does not exit"});
         }
         const isMatchPassword=await user.isValidPassword(password);
+       
         if(!isMatchPassword){
             return res.status(405).json({message:"password does not match"});
 
         }
+        user.isLogin=true;
+        await user.save();
         return res.status(200).json({message:"login successfully",user});
 
 
@@ -84,3 +87,26 @@ export const deleteByIdUser = async (req, res) => {
       return res.status(500).json({ message: "Failed to delete user", error: err.message });
     }
   };
+
+  export const findUserByID = async (req, res) => {
+    try {
+      const { userId } = req.params;
+  
+      // Validate userId format before querying
+      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
+  
+      const user = await User.findById(userId); // ✅ Use `findById()`, not `find()`
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      return res.status(200).json({ message: "Successfully fetched user", user });
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+      return res.status(500).json({ message: "Server error, failed to fetch user" });
+    }
+  };
+

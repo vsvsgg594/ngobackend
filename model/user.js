@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
-const userSchema = mongoose.Schema(
+const userSchema =new mongoose.Schema(
   {
     name: { type: String, required: true },
     designation: { type: String, required: true },
@@ -9,6 +9,8 @@ const userSchema = mongoose.Schema(
     password: { type: String, required: true },
     dateofexpire: { type: String },
     img: { type: String },
+   
+    isLogin:{type:String,default:false},
     isMember: { type: Boolean, default: false }, // Track membership status
     role: { type: String, enum: ['user', 'admin'], default: 'user' }, // Add role field
   },

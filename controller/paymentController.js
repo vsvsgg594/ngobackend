@@ -1,89 +1,147 @@
-// // Initialize Razorpay
-// import Razorpay from 'razorpay';
-// import crypto from 'crypto';
-// import User from '../model/user.js';
-// import Order from '../model/order.js';
-// import mongoose from 'mongoose';
+import User from '../model/user.js';
+import Order from '../model/order.js';
+import order from '../model/order.js';
 
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
+export const paymentInitiate = async (req, res) => {
+    try {
+        const { userId, type, amount, upiId,number } = req.body; // Fixed "upaId" typo
 
-// // Initiate Payment
-// export const initiatePayment = async (req, res) => {
-//     const { userId, amount, type } = req.body; 
-  
-//     console.log("Received userId:", userId);
-  
-//     try {
-//       if (!mongoose.Types.ObjectId.isValid(userId)) {
-//         console.error("❌ Invalid ObjectId format:", userId);
-//         return res.status(400).json({ error: "Invalid User ID format" });
-//       }
-  
-//       const user = await User.findById(new mongoose.Types.ObjectId(userId));
-  
-//       if (!user) {
-//         console.error("❌ User not found in DB:", userId);
-//         return res.status(404).json({ error: "User not found" });
-//       }
-  
-//       console.log("✅ User found:", user);
-  
-//       const options = {
-//         amount: amount * 100, // Convert to paise
-//         currency: "INR",
-//         receipt: `receipt_${Date.now()}`,
-//         payment_capture: 1,
-//       };
-  
-//       const order = await razorpay.orders.create(options);
-  
-//       const newOrder = new Order({
-//         userId,
-//         type,
-//         amount,
-//         razorpayOrderId: order.id,
-//         status: "pending",
-//       });
-  
-//       await newOrder.save();
-  
-//       res.status(200).json({ id: order.id, currency: order.currency, amount: order.amount });
-  
-//     } catch (error) {
-//       console.error("🔥 Error creating Razorpay order:", error);
-//       res.status(500).json({ error: "Failed to create payment order" });
-//     }
-//   };
+        // Validate user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
-// // Verify Payment and Update User/Membership Status
-// export const verifyPayment = async (req, res) => {
-//     const { order_id, payment_id, signature, userId } = req.body;
-  
-//     try {
-//       const generatedSignature = crypto
-//         .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-//         .update(`${order_id}|${payment_id}`)
-//         .digest('hex');
-  
-//       if (generatedSignature !== signature) {
-//         return res.status(400).json({ error: 'Invalid payment signature' });
-//       }
-  
-//       const order = await Order.findOneAndUpdate(
-//         { razorpayOrderId: order_id },
-//         { razorpayPaymentId: payment_id, status: 'paid' },
-//         { new: true }
-//       );
-  
-//       if (!order) return res.status(404).json({ error: 'Order not found' });
-  
-//       res.status(200).json({ message: 'Payment verified successfully', order });
-//     } catch (error) {
-//       console.error('Error verifying payment:', error);
-//       res.status(500).json({ error: 'Failed to verify payment' });
-//     }
-//   };
-  
+        // Validate type
+        if (!['donation', 'membership'].includes(type)) {
+            return res.status(400).json({ message: "Invalid payment type" });
+        }
+
+        // Validate amount
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: "Invalid amount" });
+        }
+
+        // Validate UPI ID for donations
+        if (type === "donation" && !upiId) {
+            return res.status(400).json({ message: "UPI ID is required for donations" });
+        }
+
+        // Create new order
+        const newOrder = new Order({
+            userId,
+            type,
+            amount,
+            number,
+            upiId,
+            status: "pending"
+        });
+
+        await newOrder.save();
+
+        return res.status(200).json({ 
+            message: "Payment initiated successfully", 
+            orderId: newOrder._id 
+        });
+
+    } catch (error) {
+        console.error("Failed to initiate payment", error);
+        return res.status(500).json({ message: "Server error: " + error.message });
+    }
+};
+
+export const getAllPayMentRequest = async (req, res) => {
+    try {
+        const payments = await Order.find({ status: "pending", type: "membership" });
+
+
+        if (!payments.length) {
+            return res.status(404).json({ message: "No pending payments found" });
+        }
+
+        return res.status(200).json({ message: "All pending orders", payments });
+
+    } catch (error) {
+        console.error("Failed to fetch orders:", error);
+        return res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+export const getAllAcceptedPaymentRequest=async(req,res)=>{
+    try{
+        const orderConfime=await Order.find({status:"paid",type:"membership"});
+        if(!orderConfime.length){
+            return res.status(401).json({message:"not found "});
+        }
+        // await orderConfime.save();
+        return res.status(200).json({message:"successfully fetch confirm data",orderConfime});
+
+    }catch(err){
+        console.log("failed to fetch ",err);
+        return res.status(402).json({message:"failed to fetch data"})
+
+    }
+}
+
+export const donationOrder=async(req,res)=>{
+    try{
+        const donationOrder=await Order.find({type:"donation"});
+        if(!donationOrder.length){
+            return res.status(402).json({message:"Not Donation found"});
+        }
+        return res.status(200).json({message:"Donation data",donationOrder});
+
+    }catch(error){
+        console.log("failed to fetch Donation order",error);
+        return res.status(403).json({message:"failed to fetch donation order"});
+
+    }
+}
+
+export const verifyPayment = async (req, res) => {
+    try {
+        const { orderId } = req.body;  // Change from req.params to req.body
+
+        // Find order by ID
+        const order = await Order.findOne({ _id: orderId });
+
+        // Check if order exists
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Update status if the amount is valid
+        if (order.amount > 0) {
+            order.status = "paid";
+            await order.save();
+            return res.status(200).json({ message: "Payment verified successfully", order });
+        }
+
+        return res.status(400).json({ message: "Invalid order amount" });
+
+    } catch (error) {
+        console.error("Failed to verify payment:", error);
+        return res.status(500).json({ message: "Failed to verify payment" });
+    }
+};
+
+
+export const updateOrderStatus=async(req,res)=>{
+    try{
+        const {id}=req.params;
+        const {status}=req.body;
+        const updateOrder=await Order.findByIdAndUpdate(
+            id,
+            {status:"paid"},
+            {new:true}
+        )
+        if(!updateOrder){
+            return res.status(404).json({message:"Order not found"});
+        }
+        await updateOrder.save();
+        return res.status(200).json({message:"update status in order",updateOrder});
+    }catch(err){
+        console.log("failed to update order status",err);
+        return res.status(402).json({message:"failed to update order status"})
+
+    }
+}
